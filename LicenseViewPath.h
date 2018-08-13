@@ -3,40 +3,33 @@
  *  and authentication of the module
  *  @author Rsystems Ltd.
  */
-
 #ifndef __LICENSEVIEWPATH_H_INCLUDED__
 #define __LICENSEVIEWPATH_H_INCLUDED__
 
-#include <map>
 #include <string>
 #include <iostream>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <openssl/md5.h>
-#include <iomanip>
-#include <uuid/uuid.h> //sudo apt-get install uuid-dev
 #include <unistd.h>
-#include <jsoncpp/json/json.h> //sudo apt-get install libjsoncpp-dev
-#include <curl/curl.h> // sudo apt-get install libcurl-dev or udo apt-get install libcurl4-openssl-dev
-                       // or sudo apt-get install libcurl4-gnutls-dev
-#include <sys/time.h>
-#include <stdio.h>
-//#include <mysql.h>
 #include <regex>
-
 #include <fstream>
-#include <cstdint>
-#include <iostream>
-#include <memory>
-#include <string>
+#include <jsoncpp/json/json.h> //sudo apt-get install libjsoncpp-dev
+#include <curl/curl.h> // sudo apt-get install libcurl-dev or udo apt-get install
+                       //libcurl4-openssl-dev or sudo apt-get install libcurl4-gnutls-dev
+
+#define DELIM "."
+#define TIMECHECK_H 23
+#define TIMECHECK_M 59
+#define SYSTEMWAIT 30
 
 /** @global Function webRequestResponse
  *  @purpose Send request to the server for data verification and get response of valid data
  *  @param char pointer to the url
  *  @return char pointer to the response
  */
-char *webRequestResponse(char *url, const char *httpData);
+bool webRequestResponse(char *url, const char *httpData);
 int valid_digit(char *ip_str);
 int is_valid_ip(char *ip_str);
 
@@ -91,8 +84,6 @@ private:
     std::string versionApp;
     std::string uniqueHWId;
     bool validLicense;
-    // map contain file name vs md5 checksum
-    std::map<std::string, std::string> mapFileList;
 
     /** @method md5_for_file
      *  @purpose generate md5 checksum value for the verification from the server

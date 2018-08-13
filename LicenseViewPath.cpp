@@ -2,22 +2,11 @@
  *  @purpose Verify the change in files
  *  and authentication of the module
  */
-
 #include"LicenseViewPath.h"
+
 using namespace std;
 
-#define DELIM "."
-#define DATA1 "uniqueHWId=sdfasdfasdf"
-#define DATA "data='{\"filelist\":{\"key1\":\"val1\"}, \"licence\":\"sasdfbf\"}'"
-#define SERVERRESPONSEURL "http://10.191.95.54/apis/fileResponse"
-#define SERVERURL "http://10.191.95.54/apis/file"
-#define TIMECHECK_H 15
-#define TIMECHECK_M 13
-#define RESPONSEMSG "\"success\":1"
-#define SYSTEMWAIT 30
-
 char* FilesVerification::responseString = NULL;
-
 // Return 1 if string contain only digits, else return 0
 int valid_digit(char *ip_str) {
     while (*ip_str) {
@@ -32,7 +21,6 @@ int valid_digit(char *ip_str) {
 }
 
 // Return 1 if IP string is valid, else return 0
-
 int is_valid_ip(char *ip_str) {
     int i, num, dots = 0;
     char *ptr;
@@ -98,9 +86,9 @@ FilesVerification::FilesVerification(char *url) {
  *  @purpose receive Json from NODE SERVER
  */
 void FilesVerification::function_pt(void *ptr, unsigned int size, unsigned int nmemb) {
-    responseString= new char;
+	responseString = NULL;
     responseString=(char*)ptr;
-    std::cout << "function_pt\t\t\t= "<<responseString<<endl;
+    std::cout << "function_pt \t="<<responseString<<endl;
 };
 
 /** @global Function webRequestResponse
@@ -108,20 +96,20 @@ void FilesVerification::function_pt(void *ptr, unsigned int size, unsigned int n
  *  @param char pointer to the url
  *  @return char pointer to the response
  */
-char *webRequestResponse(char *url, const char *httpData) {
+bool webRequestResponse(char *url, const char *httpData) {
     cout << "WebRequestResponse_01\t\t= "<<url<<endl;
-    cout<< "Data\t\t\t\t= " << httpData <<endl;
+    cout<< "Data\t= " << httpData <<endl;
     // keeps the handle to the curl object
     CURL *curl_handle = NULL; // eg: "http://localhost:8080/caller/index.jsp"
     curl_handle = curl_easy_init();
     curl_easy_setopt(curl_handle, CURLOPT_URL, url);
 
-    curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, DATA1);    //Json format : "HELLO=x&hello2=v"
+    curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, httpData);
 
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, FilesVerification::function_pt);
     curl_easy_perform(curl_handle);
     curl_easy_cleanup(curl_handle);
-    return "";
+    return true;
 }
 
 /** @method getFileListFromServer
@@ -148,14 +136,12 @@ void FilesVerification::parseFileFromJson() {
     Json::Reader reader;
     // successful response from the server
     if(responseString != NULL) {
-        bool parsingSuccessful = reader.parse(strJson.c_str(), root );     //parse process
+        bool parsingSuccessful = reader.parse(strJson.c_str(), root );//parse process
         std::map<string, string> mymap;
         int i=0;
         for( Json::ValueIterator itr = root["data"].begin() ; itr != root["data"].end() ; itr++ ) {
-                        sleep(1);
+            sleep(1);
             std::cout << "--------------------------------------------------------\n";
-            //cout<<itr.key().asString()<<"  :  ";
-            //cout<<(root["data"][i])<<endl;
             const char *file = (root["data"][i]["path"].asString()).c_str();
             std::string transfer = md5_for_file(root["data"][i]["path"].asString());
             cout<<"file_name\t: "<<(root["data"][i]["file_name"])<<endl;
@@ -178,7 +164,7 @@ void FilesVerification::parseFileFromJson() {
             }
             i++;
         }
-               cout<<"parseFileFromJson 06"<<endl;
+        cout<<"parseFileFromJson 06"<<endl;
     }
 }
 
@@ -289,7 +275,7 @@ std::string FilesVerification::getLicenseKeyfromServer(std::string data) {
     urlStr.append(urlString);
     urlStr.append("/apis/getLicenseDataByUUID");    //apis/getLicenseDataByUUID
     cout<< "getLicenseKeyfromServer\t\t= "<< urlStr << endl;
-    char *res = webRequestResponse((char *)urlStr.c_str(), data.c_str());
+    bool res = webRequestResponse((char *)urlStr.c_str(), data.c_str());
 
     std::string strJson = responseString;
     Json::Value root;
@@ -334,7 +320,7 @@ std::string FilesVerification::getUUIDFromCommand(std::string cmd) {
             pclose(stream);
     }
     char *compStr = NULL;
-    char *rmStr = "UUID: ";
+    char *rmStr = (char *)"UUID: ";
     compStr = strstr((char *)data.c_str(), rmStr);
     std::string queryString = "";
     if(compStr != NULL) {
@@ -383,61 +369,63 @@ int main(int argc, char **argv) {
         std::cout << "NO License is generated for this host m/c Please contact to Admin !!!" <<std::endl;
     }
     do{
-    std::cout << "--------------------------------------------------------\n";
-    std::cout << "\t\tLETS GET SERVER RESPONSE\n";
-    std::cout << "--------------------------------------------------------\n";
-    // Get the license key for the host from the server
-    std::string keyServer = "";
-    keyServer = objAuth.getLicenseKeyfromServer(uuidStr);
-    std::string keyFile = "";
-    keyFile = objAuth.getLicenseKeyfromFile("license.lic");
-    if(keyServer==keyFile) {
-        matchFound = true;
-        cout<<"License Key Match Result\t: TRUE !!!"<<endl;
-        std::cout << "\n--------------------------------------------------------\n";
-        std::cout << "\t\t\tTIME CHECK\n";
-        std::cout << "--------------------------------------------------------\n";
-        std::cout << "TIME CHECK H ="<< TIMECHECK_H <<std::endl;
-        std::cout << "TIME CHECK M ="<< TIMECHECK_M <<std::endl;
-        do{
-            sleep(SYSTEMWAIT);
-            std::time_t t = std::time(0);
-            std::tm *now = std::localtime(&t);
-            std::string timenow = ctime(&t);
-            std::cout << "TIME CHECK timenow H =" << now->tm_hour<<std::endl;
-            std::cout << "TIME CHECK timenow M =" << now->tm_min<<std::endl;
-            //int check = timenow.find(TIMECHECK);
-            //printf("\tTimeNow\t: %s",ctime(&t));
-            //if(check != -1){
-            if((now->tm_hour == TIMECHECK_H) && (now->tm_min == TIMECHECK_M)) {
-                //keyServer = objAuth.getLicenseKeyfromServer(uuidStr);
-                std::cout << "--------------------------------------------------------\n";
-                printf("\t\tTIME CHECK FOUND\n");
-                objAuth.parseFileFromJson();
-                printf(" .---------------.\n");
-                printf("|  HELLO LICENSE  |\n");
-                printf(" '---------------'\n");
-                std::cout << "-------------------------------------------------------\n\n";
-            }
-            if(matchFound != true) {
-                cout<<"MD5 NOT MATCH  :   ABORT  |"<<endl;
-                int x = system("sudo systemctl stop epic");
-                std::cout<< "STOP EPIC IF FORCEFULLY RUN ="<< x <<std::endl;
-            }
-            //else
-            //    printf("\n");
-        }while (1);
-
+		std::cout << "--------------------------------------------------------\n";
+		std::cout << "\t\tLETS GET SERVER RESPONSE\n";
+		std::cout << "--------------------------------------------------------\n";
+		// Get the license key for the host from the server
+		sleep(SYSTEMWAIT);
+		std::string keyServer = "";
+		keyServer = objAuth.getLicenseKeyfromServer(uuidStr);
+		std::string keyFile = "";
+		keyFile = objAuth.getLicenseKeyfromFile("license.lic");
+		if(keyServer==keyFile) {
+			matchFound = true;
+			cout<<"License Key Match Result\t: TRUE !!!"<<endl;
+			std::cout << "\n---------------------------------------------------\n";
+			std::cout << "\t\t\tTIME CHECK\n";
+			std::cout << "-----------------------------------------------------\n";
+			std::cout << "TIME CHECK H ="<< TIMECHECK_H <<std::endl;
+			std::cout << "TIME CHECK M ="<< TIMECHECK_M <<std::endl;
+			do{
+				sleep(SYSTEMWAIT);
+				std::time_t t = std::time(0);
+				std::tm *now = std::localtime(&t);
+				std::string timenow = ctime(&t);
+				std::cout << "TIME CHECK timenow H =" << now->tm_hour<<std::endl;
+				std::cout << "TIME CHECK timenow M =" << now->tm_min<<std::endl;
+				if((now->tm_hour == TIMECHECK_H) && (now->tm_min == TIMECHECK_M)) {
+					std::cout << "----------------------------------------------\n";
+					printf("\t\tTIME CHECK FOUND\n");
+					objAuth.parseFileFromJson();
+					printf(" .---------------.\n");
+					printf("|  HELLO LICENSE  |\n");
+					printf(" '---------------'\n");
+					std::cout << "----------------------------------------------\n";
+				}
+				if(matchFound != true) {
+					cout<<"MD5 NOT MATCH  :   ABORT  |"<<endl;
+					int x = system("sudo systemctl stop epic");
+					std::cout<< "STOP EPIC IF FORCEFULLY RUN ="<< x <<std::endl;
+				}
+				else {
+					if(! system("ps -A | grep epic")) {
+						cout<<"EPIC System has Stopped Restart the EPIC App"<<endl;
+						int x = system("sudo systemctl start epic");
+					}
+					else{
+						cout<<"EPIC System has been running "<<endl;
+					}
+				}
+			}while (1);
+		}
+		else {
+			matchFound = false;
+			cout<<"License Key Match Result\t: FALSE !!!"<<endl;
+			cout<<"From Server : "<<keyServer<<" || From File : "<<keyFile<<endl;
+			int x = system("sudo systemctl stop epic");
+			sleep(SYSTEMWAIT);
         }
-    else {
-                matchFound = false;
-             cout<<"License Key Match Result\t: FALSE !!!"<<endl;
-        cout<<"From Server : "<<keyServer<<" || From File : "<<keyFile<<endl;
-        int x = system("sudo systemctl stop epic");
-        sleep(SYSTEMWAIT);
-        //exit(0);
-    }}while(1);
+    }while(1);
     cout << "END of the main function " <<endl;
-
     return 0;
 };
